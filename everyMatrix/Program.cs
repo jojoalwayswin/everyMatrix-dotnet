@@ -6,7 +6,7 @@ namespace everyMatrix;
 public class Program
 {
   public static HttpListener httpListener;
-  //static string url="http://localhost:8080/";
+
   static string url = "http://*:8080/";
  
   public static void Main(string[] args)

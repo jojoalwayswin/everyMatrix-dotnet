@@ -155,88 +155,88 @@ public class RankControllerTest
             ClassicAssert.AreEqual(1, result.Length);
             ClassicAssert.AreEqual(2, result[0].CustomerId);
         }
-    [Test]
-public void TC08_UpdateScore_UserGetsNegativeScore_RemovedFromSkipList()
-{
-    _controller = new RankController();
-    // Arrange
-    int customerId = 5;
-    int initialScore = 100;
+        [Test]
+        public void TC08_UpdateScore_UserGetsNegativeScore_RemovedFromSkipList()
+        {
+            _controller = new RankController();
+            // Arrange
+            int customerId = 5;
+            int initialScore = 100;
 
-    _controller.UpdateScore(customerId, initialScore); // 先添加
-    var beforeUpdate = _controller.GetLeaderboard(1, 10);
-    ClassicAssert.IsTrue(Array.Exists(beforeUpdate, m => m.CustomerId == customerId));
+            _controller.UpdateScore(customerId, initialScore); // 先添加
+            var beforeUpdate = _controller.GetLeaderboard(1, 10);
+            ClassicAssert.IsTrue(Array.Exists(beforeUpdate, m => m.CustomerId == customerId));
 
-    // Act
-    int newScore = _controller.UpdateScore(customerId, -150);
+            // Act
+            int newScore = _controller.UpdateScore(customerId, -150);
 
-    // Assert
-    ClassicAssert.AreEqual(-50, newScore);
+            // Assert
+            ClassicAssert.AreEqual(-50, newScore);
 
-    var model = _controller.GetCustomerById(customerId, 0, 0);
-    ClassicAssert.IsEmpty(model);
+            var model = _controller.GetCustomerById(customerId, 0, 0);
+            ClassicAssert.IsEmpty(model);
 
-    var afterUpdate = _controller.GetLeaderboard(1, 10);
-    ClassicAssert.IsFalse(Array.Exists(afterUpdate, m => m.CustomerId == customerId));
-}
+            var afterUpdate = _controller.GetLeaderboard(1, 10);
+            ClassicAssert.IsFalse(Array.Exists(afterUpdate, m => m.CustomerId == customerId));
+        }
 
-[Test]
-public void TC09_UpdateScore_UserGetsZeroScore_RemovedFromSkipList()
-{
-    _controller = new RankController();
-    // Arrange
-    int customerId = 6;
-    int initialScore = 200;
+        [Test]
+        public void TC09_UpdateScore_UserGetsZeroScore_RemovedFromSkipList()
+        {
+            _controller = new RankController();
+            // Arrange
+            int customerId = 6;
+            int initialScore = 200;
 
-    _controller.UpdateScore(customerId, initialScore); // 先添加
-    var beforeUpdate = _controller.GetLeaderboard(1, 10);
-    ClassicAssert.IsTrue(Array.Exists(beforeUpdate, m => m.CustomerId == customerId));
+            _controller.UpdateScore(customerId, initialScore); // 先添加
+            var beforeUpdate = _controller.GetLeaderboard(1, 10);
+            ClassicAssert.IsTrue(Array.Exists(beforeUpdate, m => m.CustomerId == customerId));
 
-    // Act
-    int newScore = _controller.UpdateScore(customerId, -200);
+            // Act
+            int newScore = _controller.UpdateScore(customerId, -200);
 
-    // Assert
-    ClassicAssert.AreEqual(0, newScore);
+            // Assert
+            ClassicAssert.AreEqual(0, newScore);
 
-    var model = _controller.GetCustomerById(customerId, 0, 0);
-    ClassicAssert.IsEmpty(model);
+            var model = _controller.GetCustomerById(customerId, 0, 0);
+            ClassicAssert.IsEmpty(model);
 
-    var afterUpdate = _controller.GetLeaderboard(1, 10);
-    ClassicAssert.IsFalse(Array.Exists(afterUpdate, m => m.CustomerId == customerId));
-}
+            var afterUpdate = _controller.GetLeaderboard(1, 10);
+            ClassicAssert.IsFalse(Array.Exists(afterUpdate, m => m.CustomerId == customerId));
+        }
 
-[Test]
-public void TC10_GetCustomerById_CustomerHasNegativeScore_ReturnsEmpty()
-{
-    _controller = new RankController();
-    // Arrange
-    int customerId = 7;
-    _controller.UpdateScore(customerId, 100); // 添加
-    _controller.UpdateScore(customerId, -200); // 变成负分
+        [Test]
+        public void TC10_GetCustomerById_CustomerHasNegativeScore_ReturnsEmpty()
+        {
+            _controller = new RankController();
+            // Arrange
+            int customerId = 7;
+            _controller.UpdateScore(customerId, 100); // 添加
+            _controller.UpdateScore(customerId, -200); // 变成负分
 
-    // Act
-    var result = _controller.GetCustomerById(customerId, 1, 1);
+            // Act
+            var result = _controller.GetCustomerById(customerId, 1, 1);
 
-    // Assert
-    ClassicAssert.IsEmpty(result);
-}
+            // Assert
+            ClassicAssert.IsEmpty(result);
+        }
 
-[Test]
-public void TC11_GetLeaderboard_AfterNegativeScore_UserNotInList()
-{
-    _controller = new RankController();
-    // Arrange
-    int customerId = 8;
-    _controller.UpdateScore(customerId, 100); // 添加
-    var before = _controller.GetLeaderboard(1, 10);
-    ClassicAssert.IsTrue(Array.Exists(before, m => m.CustomerId == customerId));
+        [Test]
+        public void TC11_GetLeaderboard_AfterNegativeScore_UserNotInList()
+        {
+            _controller = new RankController();
+            // Arrange
+            int customerId = 8;
+            _controller.UpdateScore(customerId, 100); // 添加
+            var before = _controller.GetLeaderboard(1, 10);
+            ClassicAssert.IsTrue(Array.Exists(before, m => m.CustomerId == customerId));
 
-    // Act
-    _controller.UpdateScore(customerId, -100); // 得分为 0
-    var after = _controller.GetLeaderboard(1, 10);
+            // Act
+            _controller.UpdateScore(customerId, -100); // 得分为 0
+            var after = _controller.GetLeaderboard(1, 10);
 
-    // Assert
-    ClassicAssert.IsFalse(Array.Exists(after, m => m.CustomerId == customerId));
-}
+            // Assert
+            ClassicAssert.IsFalse(Array.Exists(after, m => m.CustomerId == customerId));
+        }
 
 }
