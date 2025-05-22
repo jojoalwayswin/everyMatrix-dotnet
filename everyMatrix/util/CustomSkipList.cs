@@ -1,6 +1,4 @@
-using System.Collections.Concurrent;
 using everyMatrix.domain;
-
 namespace everyMatrix.util;
 /**
  * 自定义的跳表类
