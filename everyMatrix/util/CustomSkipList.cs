@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using everyMatrix.domain;
 
 namespace everyMatrix.util;
@@ -55,7 +56,6 @@ public class CustomSkipList
 
             _count++;
         }
-        
     }
     
     public bool Delete(RankModel customer)

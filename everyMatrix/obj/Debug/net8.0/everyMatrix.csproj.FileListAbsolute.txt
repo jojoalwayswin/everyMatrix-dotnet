@@ -34,3 +34,14 @@ D:\projects\everyMatrix-dotnet\everyMatrix\obj\Debug\net8.0\everyMatrix.csproj.C
 D:\projects\everyMatrix-dotnet\everyMatrix\obj\Debug\net8.0\everyMatrix.dll
 D:\projects\everyMatrix-dotnet\everyMatrix\obj\Debug\net8.0\refint\everyMatrix.dll
 D:\projects\everyMatrix-dotnet\everyMatrix\obj\Debug\net8.0\everyMatrix.pdb
+D:\projects\everyMatrix-dotnet\everyMatrix\bin\Debug\net8.0\everyMatrix.exe
+D:\projects\everyMatrix-dotnet\everyMatrix\bin\Debug\net8.0\everyMatrix.deps.json
+D:\projects\everyMatrix-dotnet\everyMatrix\bin\Debug\net8.0\everyMatrix.runtimeconfig.json
+D:\projects\everyMatrix-dotnet\everyMatrix\bin\Debug\net8.0\everyMatrix.dll
+D:\projects\everyMatrix-dotnet\everyMatrix\bin\Debug\net8.0\everyMatrix.pdb
+D:\projects\everyMatrix-dotnet\everyMatrix\bin\Debug\net8.0\nunit.framework.dll
+D:\projects\everyMatrix-dotnet\everyMatrix\bin\Debug\net8.0\nunit.framework.legacy.dll
+D:\projects\everyMatrix-dotnet\everyMatrix\obj\Debug\net8.0\everyMatrix.sourcelink.json
+D:\projects\everyMatrix-dotnet\everyMatrix\obj\Debug\net8.0\everyMat.6346B374.Up2Date
+D:\projects\everyMatrix-dotnet\everyMatrix\obj\Debug\net8.0\everyMatrix.genruntimeconfig.cache
+D:\projects\everyMatrix-dotnet\everyMatrix\obj\Debug\net8.0\ref\everyMatrix.dll

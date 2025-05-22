@@ -10,7 +10,7 @@ public class RankController
     {
         return Instance;
     }
-    private CustomHashMap _customers = new();
+    private CustomHashMap<long,RankModel> _customers = new();
     private CustomSkipList _skipList = new();
     public int UpdateScore(int customerId, int newScore)
     {
@@ -57,16 +57,17 @@ public class RankController
 
     public RankModel[] GetCustomerById(int customerId, int high, int low)
     {
+        
         var customer = _customers.Get(customerId);
         if (customer == null || customer.Score <= 0)
             return Array.Empty<RankModel>();
-
+       
         int rank = FindRankByCustomerId(customerId);
         if (rank == -1)
             return Array.Empty<RankModel>();
-
         customer.Rank = rank;
-
+        high = Math.Max(0, high);
+        low = Math.Max(0, low);
         int prevStart = Math.Max(1, rank - high);
         int prevEnd = rank - 1;
         int nextStart = rank + 1;

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("everyMatrix")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b290b013b9584425e8e358afbdefb6356d1ee6f6")]
 [assembly: System.Reflection.AssemblyProductAttribute("everyMatrix")]
 [assembly: System.Reflection.AssemblyTitleAttribute("everyMatrix")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
