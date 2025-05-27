@@ -1,4 +1,5 @@
 
+using System.Diagnostics;
 using everyMatrix.Controller;
 using NUnit.Framework.Legacy;
 
@@ -238,5 +239,83 @@ public class RankControllerTest
             // Assert
             ClassicAssert.IsFalse(Array.Exists(after, m => m.CustomerId == customerId));
         }
+        [Test]
+        public void TC13_Concurrent_UpdateScore_WithHighLoad()
+        {
+            _controller = new RankController();
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            int totalUsers = 100000; // 总用户数
+            int operationsPerUser = 10; // 每个用户更新次数
+            var tasks = new List<Task>();
+            // 模拟多个用户并发执行 UpdateScore
+            for (int userId = 1; userId <= totalUsers; userId++)
+            {
+                int localId = userId;
 
+                for (int i = 0; i < operationsPerUser; i++)
+                {
+                    tasks.Add(Task.Run(() =>
+                    {
+                        int score = new Random().Next(1, 100);
+                        _controller.UpdateScore(localId, score);
+                    }));
+                }
+            }
+            Task.WaitAll(tasks.ToArray());
+            // 验证总数量是否一致
+            var allPlayers = _controller.GetLeaderboard(1, totalUsers * 2);
+            ClassicAssert.AreEqual(totalUsers, allPlayers.Length);
+            // 验证部分用户数据是否完整
+            for (int i = 0; i < Math.Min(10, totalUsers); i++)
+            {
+                var result = _controller.GetCustomerById(i + 1, 0, 0);
+                ClassicAssert.IsNotEmpty(result);
+            }
+            stopwatch.Stop();
+            Console.WriteLine(stopwatch.Elapsed.TotalSeconds);
+        }
+        [Test]
+        public void TC14_Concurrent_InsertAndQuery_Mixed_Load()
+        {
+            _controller = new RankController();
+            int totalUsers = 5000;
+            var updateTasks = new List<Task>();
+            var queryTasks = new List<Task>();
+
+            // 启动并发更新任务
+            for (int userId = 1; userId <= totalUsers; userId++)
+            {
+                int id = userId;
+                updateTasks.Add(Task.Run(() =>
+                {
+                    for (int i = 0; i < 10; i++)
+                    {
+                        int score = new Random().Next(-50, 100);
+                        _controller.UpdateScore(id, score);
+                    }
+                }));
+            }
+
+            // 同时进行并发查询
+            for (int i = 0; i < 20; i++)
+            {
+                queryTasks.Add(Task.Run(() =>
+                {
+                    var top10 = _controller.GetLeaderboard(1, 10);
+                    if (top10.Length > 0)
+                    {
+                        foreach (var player in top10)
+                        {
+                            var nearby = _controller.GetCustomerById(player.CustomerId, 1, 1);
+                            ClassicAssert.IsNotNull(nearby);
+                        }
+                    }
+                }));
+            }
+
+            Task.WaitAll(updateTasks.Concat(queryTasks).ToArray());
+            // 最终验证排行榜是否正常
+            var finalTop = _controller.GetLeaderboard(1, totalUsers);
+            ClassicAssert.IsTrue(finalTop.All(m => m.Score >= 0)); // 如果只保留正分用户
+        }
 }

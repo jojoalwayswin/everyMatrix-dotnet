@@ -4,11 +4,13 @@ public class SkipListNode
 {
     public RankModel RankModel { get; set; }
     public SkipListNode[] Forward;
+    public SkipListNode[] Backward;
 
     public SkipListNode(RankModel rankModel, int level)
     {
         RankModel = rankModel;
         Forward = new SkipListNode[level];
+        Backward = new SkipListNode[level];
     }
 
     public static int Compare(SkipListNode a, SkipListNode b)

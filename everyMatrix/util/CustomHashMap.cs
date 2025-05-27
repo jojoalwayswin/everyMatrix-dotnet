@@ -17,6 +17,7 @@ namespace everyMatrix.util;
         private int _count;
         private readonly float _loadFactor;
         private int _threshold;
+        private readonly ReaderWriterLockSlim _rwLock = new();
         public int Count()
         {
             return _count;
@@ -48,7 +49,6 @@ namespace everyMatrix.util;
         {
             if (initialCapacity <= 0) throw new ArgumentException("Capacity must be greater than zero.");
             if (loadFactor <= 0) throw new ArgumentException("Load factor must be greater than zero.");
-
             _buckets = new Entry[initialCapacity];
             _count = 0;
             _loadFactor = loadFactor;
@@ -57,21 +57,58 @@ namespace everyMatrix.util;
 
         private int GetBucketIndex(TKey key)
         {
-            // 使用默认的 GetHashCode，并确保非负数
-            return Math.Abs(EqualityComparer<TKey>.Default.GetHashCode(key)) % _buckets.Length;
+            {
+                if (key == null) return 0;
+                // 使用默认 GetHashCode 并确保非负数
+                int hash;
+                if (typeof(TKey) == typeof(string))
+                {
+                    // 对 string 做额外稳定性处理（可选）
+                    hash = StringToStableHash(key.ToString());
+                }
+                else
+                {
+                    hash = key.GetHashCode();
+                }
+                // 保证正数
+                return Math.Abs(hash) % _buckets.Length;
+            }
         }
-
+        // 可选：对 string 实现稳定哈希
+        private static int StringToStableHash(string s)
+        {
+            unchecked
+            {
+                int hash = 17;
+                foreach (char c in s)
+                {
+                    hash = hash * 23 + c;
+                }
+                return hash;
+            }
+        }
         public void Put(TKey key, TValue value)
         {
+            _rwLock.EnterWriteLock();
+            try
+            {
+                InsertInternal(key, value);
+            }
+            finally
+            {
+                _rwLock.ExitWriteLock();
+            }
+        }
+        private void InsertInternal(TKey key, TValue value)
+        {
             if (key == null) throw new ArgumentNullException(nameof(key));
-            // 检查是否需要扩容
+            // 检查是否需要扩容（Resize 时不再触发）
             if (_count >= _threshold)
             {
-                Resize();
-            }   
+                ResizeInternal(); // 不再调用 Put
+            }
             int index = GetBucketIndex(key);
             Entry entry = _buckets[index];
-
             while (entry != null)
             {
                 if (Equals(entry.Key, key))
@@ -81,45 +118,44 @@ namespace everyMatrix.util;
                 }
                 entry = entry.Next;
             }
-
             var newEntry = new Entry { Key = key, Value = value, Next = _buckets[index] };
             _buckets[index] = newEntry;
             _count++;
         }
-
         public TValue Get(TKey key)
         {
-            if (key == null) throw new ArgumentNullException(nameof(key));
-
-            int index = GetBucketIndex(key);
-            Entry entry = _buckets[index];
-
-            while (entry != null)
+            _rwLock.EnterReadLock();
+            try
             {
-                if (Equals(entry.Key, key))
-                    return entry.Value;
-                entry = entry.Next;
+                if (key == null) throw new ArgumentNullException(nameof(key));
+                int index = GetBucketIndex(key);
+                Entry entry = _buckets[index];
+                while (entry != null)
+                {
+                    if (Equals(entry.Key, key))
+                        return entry.Value;
+                    entry = entry.Next;
+                }
+                return default(TValue);
             }
-
-            return default(TValue);
+            finally
+            {
+                _rwLock.ExitReadLock();
+            }
         }
-        private void Resize()
+        private void ResizeInternal()
         {
             int newCapacity = _buckets.Length * 2;
             Entry[] oldBuckets = _buckets;
-
-            // 创建新桶数组
             _buckets = new Entry[newCapacity];
             _threshold = (int)(newCapacity * _loadFactor);
             _count = 0;
-
-            // 迁移原有数据
             foreach (var oldBucket in oldBuckets)
             {
                 Entry entry = oldBucket;
                 while (entry != null)
                 {
-                    Put(entry.Key, entry.Value); // 重新插入
+                    InsertInternal(entry.Key, entry.Value); // 使用无锁插入
                     entry = entry.Next;
                 }
             }

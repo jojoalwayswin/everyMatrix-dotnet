@@ -10,35 +10,45 @@ public class HttpListenerHandler
 {
     
   /// <summary>
-/// 监听回调函数
-/// </summary>
-///
-
-public static void ListenerHandle(IAsyncResult result)
-{
-  try
+  /// 监听回调函数
+  /// </summary>
+  public static void ListenerHandle(IAsyncResult result)
   {
-    if (!Program.httpListener.IsListening) return;
-
     Program.httpListener.BeginGetContext(ListenerHandle, result);
-    HttpListenerContext context = Program.httpListener.EndGetContext(result);
-
-    // 处理请求
-    ProcessRequest(context);
+    HttpListenerContext context  = Program.httpListener.EndGetContext(result);
+    try
+    {
+      if (!Program.httpListener.IsListening) return;
+      // 处理请求
+      ProcessRequest(context);
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Error handling request: {ex.Message}");
+      // 向客户端返回异常信息
+      try
+      {
+        using (var response = context?.Response)
+        {
+          if (response != null)
+          {
+            WriteErrorResponse(response, "Internal Server Error", 500);
+          }
+        }
+      }
+      catch
+      {
+        // 忽略发送错误时的异常
+      }
+      
+    }
   }
-  catch (Exception ex)
-  {
-    Console.WriteLine($"Error handling request: {ex.Message}");
-   
-  }
-}
   private static void ProcessRequest(HttpListenerContext context)
   {
     var request = context.Request;
     var response = context.Response;
-       object resp = null;
+    object resp = null;
     int statusCode = 200;
-
     try
     {
       string fullUrl = request.Url.ToString();
@@ -88,8 +98,7 @@ public static void ListenerHandle(IAsyncResult result)
 
       statusCode = 200;
       return RankController.GetInstance().GetLeaderboard(start, end);
-    }
-    else if (Regex.IsMatch(path, @"^\/leaderboard\/(\d+)\?(.*)$"))
+    }else if (Regex.IsMatch(path, @"^\/leaderboard\/(\d+)\?(.*)$"))
     {
       Match match = Regex.Match(path, @"^\/leaderboard\/(\d+)\?(.*)$");
       int customerId = int.Parse(match.Groups[1].Value);
@@ -147,23 +156,33 @@ public static void ListenerHandle(IAsyncResult result)
       output.Write(buffer, 0, buffer.Length);
     }
   }
+  private static void WriteErrorResponse(HttpListenerResponse response, string message, int statusCode)
+  {
+    response.StatusCode = statusCode;
+    response.ContentType = "application/json";
+    response.ContentEncoding = Encoding.UTF8;
+    response.AppendHeader("Access-Control-Allow-Origin", "*");
 
+    var errorResponse = new { error = message };
+    byte[] buffer = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(errorResponse));
 
+    response.ContentLength64 = buffer.Length;
+    using (Stream output = response.OutputStream)
+    {
+      output.Write(buffer, 0, buffer.Length);
+    }
+  }
   static CustomHashMap<string, string> ParseQueryString(string queryString)
   {
     var result = new CustomHashMap<string, string>();
-
     if (string.IsNullOrEmpty(queryString))
       return result;
-
     // 分割每个键值对
     string[] pairs = queryString.Split('&');
-
     foreach (string pair in pairs)
     {
       if (string.IsNullOrEmpty(pair))
         continue;
-
       string[] parts = pair.Split('=');
       if (parts.Length == 2)
       {
@@ -173,7 +192,6 @@ public static void ListenerHandle(IAsyncResult result)
         {
           continue;
         }
-        
         result.Put(key,value);
       }
     }

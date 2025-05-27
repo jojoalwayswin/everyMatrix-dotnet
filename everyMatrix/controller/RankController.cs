@@ -6,32 +6,53 @@ namespace everyMatrix.Controller;
 public class RankController
 {
     private static readonly RankController Instance = new RankController();
+    private const int SegmentCount = 1;
+    private readonly ReaderWriterLockSlim[] _segmentLocks = new ReaderWriterLockSlim[SegmentCount];
+    private CustomHashMap<long,RankModel> _customers = new();
+    private CustomSkipList _skipList = new();
+
+    private ReaderWriterLockSlim GetWriteLockForUser(int customerId)
+    {
+        int index = Math.Abs(customerId) % SegmentCount;
+        return _segmentLocks[index];
+    }
+    public RankController()
+    {
+        for (int i = 0; i < SegmentCount; i++)
+        {
+            _segmentLocks[i] = new ReaderWriterLockSlim();
+        }
+    }
     public static RankController GetInstance()
     {
         return Instance;
     }
-    private CustomHashMap<long,RankModel> _customers = new();
-    private CustomSkipList _skipList = new();
+
     public int UpdateScore(int customerId, int newScore)
-    {
-        if (_customers.Get(customerId) is RankModel existing)
+    {   
+        var writerLock = GetWriteLockForUser(customerId);
+        writerLock.EnterWriteLock();
+        try
         {
-
-            if (existing.Score > 0)
+            if (_customers.Get(customerId) is RankModel existing)
+            {
                 _skipList.Delete(existing);
-
-            existing.Score += newScore;
-            _customers.Put(customerId, existing);
-        }
-        else
+                existing.Score += newScore;
+            }
+            else
+            {
+                existing = new RankModel(customerId, newScore);
+            }
+            if (existing.Score >0)
+            {
+                existing = _skipList.Insert(existing);
+                _customers.Put(customerId, existing);
+            }
+            return existing.Score;
+        }finally
         {
-            existing = new RankModel(customerId, newScore);
-            _customers.Put(customerId, existing);
+            writerLock.ExitWriteLock();
         }
-
-        if (newScore > 0)
-            _skipList.Insert(existing);
-        return existing.Score;
     }
 
     public  RankModel[] GetLeaderboard(int start, int end)
@@ -42,72 +63,56 @@ public class RankController
 
         if (start > end)
             return Array.Empty<RankModel>();
-
         // 使用 GetRangeByRank 获取指定范围的客户
         RankModel[] result = _skipList.GetRangeByRank(start, end);
-
         // 遍历并设置 Rank（根据传入的 start 起始）
         for (int i = 0; i < result.Length; i++)
         {
             result[i].Rank = start + i;
         }
-
         return result;
     }
 
-    public RankModel[] GetCustomerById(int customerId, int high, int low)
+    public RankModel[] GetCustomerById(long customerId, int high, int low)
     {
-        
         var customer = _customers.Get(customerId);
         if (customer == null || customer.Score <= 0)
             return Array.Empty<RankModel>();
-       
-        int rank = FindRankByCustomerId(customerId);
-        if (rank == -1)
+
+        SkipListNode node = _skipList.GetSkipListNode(customer); 
+        if (node == null)
             return Array.Empty<RankModel>();
-        customer.Rank = rank;
-        high = Math.Max(0, high);
-        low = Math.Max(0, low);
-        int prevStart = Math.Max(1, rank - high);
-        int prevEnd = rank - 1;
-        int nextStart = rank + 1;
-        int nextEnd = Math.Min(_skipList.Count, rank + low);
-
-        int totalSize = (prevEnd - prevStart + 1) + 1 + (nextEnd - nextStart + 1);
-        RankModel[] result = new RankModel[totalSize];
-
-        int index = 0;
-
-        // 前面的客户
-        if (prevStart <= prevEnd)
+        // 使用双向链表快速定位前后节点
+        List<RankModel> result = new List<RankModel>();
+        // 当前节点
+        customer.Rank = node.RankModel.Rank; 
+        result.Add(customer);
+        // 前面的 high 个节点（向前遍历）
+        SkipListNode prev = node.Backward[0];
+        int prevCount = 0;
+        while (prev != null && prevCount < high)
         {
-            var prevList = _skipList.GetRangeByRank(prevStart, prevEnd);
-            Array.Copy(prevList, 0, result, index, prevList.Length);
-            index += prevList.Length;
+            if (prev.RankModel.Score > 0)
+            {
+                result.Insert(0, prev.RankModel);
+                prevCount++;
+            }
+            prev = prev.Backward[0];
         }
 
-        // 当前客户
-        result[index++] = customer;
-
-        // 后面的客户
-        if (nextStart <= nextEnd)
+        // 后面的 low 个节点（向后遍历）
+        SkipListNode next = node.Forward[0];
+        int nextCount = 0;
+        while (next != null && nextCount < low)
         {
-            var nextList = _skipList.GetRangeByRank(nextStart, nextEnd);
-            Array.Copy(nextList, 0, result, index, nextList.Length);
+            if (next.RankModel.Score > 0)
+            {
+                result.Add(next.RankModel);
+                nextCount++;
+            }
+            next = next.Forward[0];
         }
-
-        return result;
+        return result.ToArray();
     }
 
-    // 辅助方法：根据 CustomerId 查找排名
-    private int FindRankByCustomerId(long id)
-    {
-        for (int i = 1; i <= _skipList.Count; i++)
-        {
-            var current = _skipList.GetByRank(i);
-            if (current.CustomerId == id)
-                return i;
-        }
-        return -1;
-    }
 }
